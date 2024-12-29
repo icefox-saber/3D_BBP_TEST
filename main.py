@@ -119,7 +119,7 @@ if __name__ == "__main__":
     torch.manual_seed(0)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
-    max_steps = 10 * action_dim
+    max_steps = 15 * action_dim
     giveup_action = action_dim - 1
 
     # 初始化智能体

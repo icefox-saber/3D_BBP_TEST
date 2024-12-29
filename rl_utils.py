@@ -51,7 +51,8 @@ def train_on_policy_agent(env, agent, num_episodes, max_steps, giveup_action):
                         transition_dict['dones'].append(done)
                         state = next_state
                         episode_return += reward
-                        break
+                        steps = 0
+                        continue
                     else:
                         steps += 1
                         action = agent.take_action(state)

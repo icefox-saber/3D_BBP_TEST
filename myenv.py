@@ -130,6 +130,7 @@ class BinPacking3DEnv(gym.Env):
 
 
     def step(self, action):
+        #print(action)
         is_end = self.check_end()
         is_able = self.check_able()
         reward = 0
