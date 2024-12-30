@@ -110,7 +110,7 @@ if __name__ == "__main__":
     lmbda = 0.95
     epochs = 10
     eps = 0.2
-    device = torch.device("cpu")
+    device = torch.device("cuda")
 
     registration_envs()
     env_name = "bbp-v0"
@@ -119,7 +119,6 @@ if __name__ == "__main__":
     torch.manual_seed(0)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
-    max_steps = 5 * action_dim
     giveup_action = action_dim - 1
 
     # 初始化智能体
@@ -127,7 +126,7 @@ if __name__ == "__main__":
                 epochs, eps, gamma, device)
 
     # 开始训练
-    return_list = rl_utils.train_on_policy_agent(env, agent, num_episodes, max_steps, giveup_action)
+    return_list = rl_utils.train_on_policy_agent(env, agent, num_episodes, giveup_action)
 
     # 保存模型
     torch.save(agent.actor.state_dict(), 'ppo_actor.pth')
