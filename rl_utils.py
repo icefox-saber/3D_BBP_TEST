@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import collections
 import random
-
+from copy import deepcopy
 
 class ReplayBuffer:
     def __init__(self, capacity):
@@ -32,6 +32,7 @@ def moving_average(a, window_size):
 
 def train_on_policy_agent(env, agent, num_episodes, max_steps, giveup_action):
     return_list = []
+    last_successful_agent = None
     for i in range(10):
         with tqdm(total=int(num_episodes / 10), desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(num_episodes / 10)):
@@ -52,6 +53,7 @@ def train_on_policy_agent(env, agent, num_episodes, max_steps, giveup_action):
                         state = next_state
                         episode_return += reward
                         steps = 0
+
                         continue
                     else:
                         steps += 1
@@ -67,7 +69,17 @@ def train_on_policy_agent(env, agent, num_episodes, max_steps, giveup_action):
                         state = next_state
                         episode_return += reward
                 return_list.append(episode_return)
-                agent.update(transition_dict)
+
+                try:
+                    agent.update(transition_dict)  # 尝试更新智能体
+                    last_successful_agent = deepcopy(agent)  # 本轮训练成功，更新缓存的智能体
+                except ValueError as e:
+                    print(f"Warning: NaN detected in episode {i_episode}, reverting to last successful model.")
+                    # 恢复到上一轮成功的智能体
+                    if last_successful_agent is not None:
+                        agent = deepcopy(last_successful_agent)
+                    break  # 跳出本轮训练，进行下一轮
+
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),
                                       'return': '%.3f' % np.mean(return_list[-10:])})

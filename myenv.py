@@ -105,7 +105,7 @@ class BinPacking3DEnv(gym.Env):
             y = coming_box[1]
             z = coming_box[0]
 
-        return(x,y,z)
+        return (x,y,z)
 
     def check_end(self):
         if self.steps == self.max_items:
@@ -126,7 +126,7 @@ class BinPacking3DEnv(gym.Env):
         action_mask5 = self.get_possible_position(rotated_box5)
         if action_mask.sum() == 0 and action_mask1.sum() == 0 and action_mask2.sum() == 0 and action_mask3.sum() == 0 and action_mask4.sum() == 0 and action_mask5.sum() == 0:
             return False
-        return  True
+        return True
 
 
     def step(self, action):
@@ -143,6 +143,8 @@ class BinPacking3DEnv(gym.Env):
             self.steps += 1
             done = False
             if is_able:
+                box_ratio = self.get_box_ratio()
+                reward -= box_ratio * 10
                 return self.cur_observation(), reward, done, {}
             else:
                 box_ratio = self.get_box_ratio()
