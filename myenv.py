@@ -17,7 +17,7 @@ class BinPacking3DEnv(gym.Env):
         self.max_items = max_items
         self.space = Space(*self.bin_size)
         self.area = int(self.bin_size[0] * self.bin_size[1])
-        self.act_len = self.area * 6 + 1
+        self.act_len = self.area * 6
         self.obs_len = self.area *(1+3)
         self.action_space = gym.spaces.Discrete(self.act_len)
         self.observation_space = gym.spaces.Box(low=0.0, high=self.space.height, shape=(self.obs_len,))
@@ -135,21 +135,16 @@ class BinPacking3DEnv(gym.Env):
         is_able = self.check_able()
         reward = 0
 
+        while not is_able:
+            self.steps += 1
+            if is_end:
+                done = True
+                return self.cur_observation(), reward, done, {}
+            is_able = self.check_able()
+
         if is_end:
             done = True
             return self.cur_observation(), reward, done, {}
-
-        if action == self.area * 6 + 1:
-            self.steps += 1
-            done = False
-            if is_able:
-                box_ratio = self.get_box_ratio()
-                reward -= box_ratio * 10
-                return self.cur_observation(), reward, done, {}
-            else:
-                box_ratio = self.get_box_ratio()
-                reward += box_ratio * 10
-                return self.cur_observation(), reward, done, {}
 
         rotation = action % 6
         idx = action // 6
@@ -173,7 +168,7 @@ class BinPacking3DEnv(gym.Env):
         info['counter'] = len(self.space.boxes)
         info['ratio'] = self.space.get_ratio()
         # info['mask'] = self.get_possible_position().reshape((-1,))
-        self.steps += 1
+
         return self.cur_observation(), reward, done, {}
 
 
