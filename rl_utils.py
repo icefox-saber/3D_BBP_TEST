@@ -86,7 +86,7 @@ def train_on_policy_agent(env, agent, num_episodes, max_steps, giveup_action):
                 pbar.update(1)
     return return_list
 
-
+"""
 def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size, batch_size):
     return_list = []
     for i in range(10):
@@ -112,7 +112,7 @@ def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size
                                       'return': '%.3f' % np.mean(return_list[-10:])})
                 pbar.update(1)
     return return_list
-
+"""
 
 def compute_advantage(gamma, lmbda, td_delta):
     td_delta = td_delta.detach().numpy()
