@@ -147,6 +147,7 @@ class BinPacking3DEnv(gym.Env):
                     'mask': np.ones(shape=self.act_len)}
             return self.cur_observation(), reward, done, {}
 
+        print(self.steps)
         box_ratio = self.get_box_ratio()
         plain = self.space.plain
         reward += box_ratio * 10
@@ -166,14 +167,6 @@ class BinPacking3DEnv(gym.Env):
         while not is_able:
             self.steps += 1
             is_end = self.check_end()
-            if is_end:
-                done = True
-                return self.cur_observation(), reward, done, {}
-            is_able = self.check_able()
-
-        self.steps += 1
-        while not is_able:
-            self.steps += 1
             if is_end:
                 done = True
                 return self.cur_observation(), reward, done, {}

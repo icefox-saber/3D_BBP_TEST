@@ -17,9 +17,7 @@ class PolicyNet(torch.nn.Module):
         x = F.relu(self.fc1(x))
         probs = self.fc2(x)
         log_probs = F.log_softmax(probs, dim=1)
-        # 如果只需要概率，可以去掉这行
         probs = torch.exp(log_probs)
-        #print(probs)
         return probs
 
 
@@ -50,12 +48,21 @@ class PPO:
         self.eps = eps  # PPO中截断范围的参数
         self.device = device
 
-    def take_action(self, state):
+    def take_action(self, state, fail):
+
         state = torch.tensor([state], dtype=torch.float).to(self.device)
-        probs = self.actor(state)
-        action_dist = torch.distributions.Categorical(probs)
-        action = action_dist.sample()
-        return action.item()
+        try:
+            probs = self.actor(state)
+            # 检查概率是否为nan
+            if torch.isnan(probs).any():
+                raise ValueError("Probabilities returned NaN")
+            action_dist = torch.distributions.Categorical(probs)
+            action = action_dist.sample()
+            return action.item()
+
+        except ValueError as e:
+            print(f"Error in computing action: {e}")
+            return fail
 
     def update(self, transition_dict):
         states = torch.tensor(transition_dict['states'],
@@ -128,7 +135,7 @@ if __name__ == "__main__":
                 epochs, eps, gamma, device)
 
     # 开始训练
-    return_list = rl_utils.train_on_policy_agent(env, agent, num_episodes, max_steps)
+    return_list = rl_utils.train_on_policy_agent(env, agent, num_episodes, max_steps, fail)
 
     # 保存模型
     torch.save(agent.actor.state_dict(), 'ppo_actor.pth')
