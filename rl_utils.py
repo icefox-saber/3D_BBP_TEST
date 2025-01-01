@@ -33,6 +33,7 @@ def moving_average(a, window_size):
 def train_on_policy_agent(env, agent, num_episodes, max_steps):
     return_list = []
     last_successful_agent = None
+    last_action = None
     for i in range(10):
         with tqdm(total=int(num_episodes / 10), desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(num_episodes / 10)):
@@ -42,7 +43,11 @@ def train_on_policy_agent(env, agent, num_episodes, max_steps):
                 done = False
                 steps = 0
                 while not done:
-                        action = agent.take_action(state)
+                        action = agent.take_action(state, last_action)
+                        if action is not None:
+                            last_action = action
+                        else:
+                            print("Action is None")
                         next_state, reward, done, _ = env.step(action)
                         transition_dict['states'].append(state)
                         transition_dict['actions'].append(action)

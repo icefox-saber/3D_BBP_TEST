@@ -14,13 +14,24 @@ class PolicyNet(torch.nn.Module):
         self.fc2 = torch.nn.Linear(hidden_dim, action_dim)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        probs = self.fc2(x)
-        log_probs = F.log_softmax(probs, dim=1)
-        # 如果只需要概率，可以去掉这行
-        probs = torch.exp(log_probs)
-        #print(probs)
-        return probs
+        try:
+            x = F.relu(self.fc1(x))
+            logits = self.fc2(x)  # 计算 logits
+            log_probs = F.log_softmax(logits, dim=1)  # 计算对数概率
+
+            # 如果需要计算概率
+            probs = torch.exp(log_probs)
+
+            # 检查是否出现 NaN 或 Inf
+            if torch.any(torch.isnan(probs)) or torch.any(torch.isinf(probs)):
+                raise ValueError("NaN or Inf detected in probs")
+
+            return probs
+
+        except ValueError as e:  # 捕获 ValueError 异常
+            print(f"Error during forward pass: {e}")
+            # 如果出现 NaN 或 Inf，重置 probs 为一个有效的默认值
+            return -1
 
 
 class ValueNet(torch.nn.Module):
@@ -50,9 +61,15 @@ class PPO:
         self.eps = eps  # PPO中截断范围的参数
         self.device = device
 
-    def take_action(self, state):
+    def take_action(self, state, last_action):
         state = torch.tensor([state], dtype=torch.float).to(self.device)
         probs = self.actor(state)
+        if probs == -1:
+            if last_action is not None:
+                return last_action
+            else:
+                return None
+
         action_dist = torch.distributions.Categorical(probs)
         action = action_dist.sample()
         return action.item()
