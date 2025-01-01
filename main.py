@@ -110,7 +110,7 @@ if __name__ == "__main__":
     lmbda = 0.95
     epochs = 10
     eps = 0.2
-    device = torch.device("cuda")
+    device = torch.device("cpu")
 
     registration_envs()
     env_name = "bbp-v0"

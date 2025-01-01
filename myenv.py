@@ -135,13 +135,6 @@ class BinPacking3DEnv(gym.Env):
         is_able = self.check_able()
         reward = 0
 
-        while not is_able:
-            self.steps += 1
-            if is_end:
-                done = True
-                return self.cur_observation(), reward, done, {}
-            is_able = self.check_able()
-
         if is_end:
             done = True
             return self.cur_observation(), reward, done, {}
@@ -168,6 +161,14 @@ class BinPacking3DEnv(gym.Env):
         info['counter'] = len(self.space.boxes)
         info['ratio'] = self.space.get_ratio()
         # info['mask'] = self.get_possible_position().reshape((-1,))
+
+        self.steps += 1
+        while not is_able:
+            self.steps += 1
+            if is_end:
+                done = True
+                return self.cur_observation(), reward, done, {}
+            is_able = self.check_able()
 
         return self.cur_observation(), reward, done, {}
 
