@@ -10,7 +10,7 @@ from space import Space
 from bpp_gen import bpp_generator
 
 class BinPacking3DEnv(gym.Env):
-    def __init__(self, bin_size=(20, 20, 20), max_items=10):
+    def __init__(self, bin_size=(20, 20, 20), max_items=60):
         super(BinPacking3DEnv, self).__init__()
 
         self.bin_size = np.array(bin_size)
@@ -38,10 +38,7 @@ class BinPacking3DEnv(gym.Env):
         return self.cur_observation()
 
     def cur_box(self):
-        if(self.steps < self.max_items):
             return self.box_list[self.steps]
-        else:
-            return (0,0,0)
 
     def get_box_plain(self):
         x_plain = np.ones(self.space.plain_size[:2], dtype=np.int32) * self.cur_box()[0]
@@ -130,7 +127,6 @@ class BinPacking3DEnv(gym.Env):
 
 
     def step(self, action):
-        #print(action)
         is_end = self.check_end()
         is_able = self.check_able()
         reward = 0
@@ -153,14 +149,27 @@ class BinPacking3DEnv(gym.Env):
 
         box_ratio = self.get_box_ratio()
         plain = self.space.plain
-
         reward += box_ratio * 10
-        print("success")
         done = False
         info = dict()
         info['counter'] = len(self.space.boxes)
         info['ratio'] = self.space.get_ratio()
         # info['mask'] = self.get_possible_position().reshape((-1,))
+        self.steps += 1
+        is_able = self.check_able()
+        is_end = self.check_end()
+
+        if is_end:
+            done = True
+            return self.cur_observation(), reward, done, {}
+
+        while not is_able:
+            self.steps += 1
+            is_end = self.check_end()
+            if is_end:
+                done = True
+                return self.cur_observation(), reward, done, {}
+            is_able = self.check_able()
 
         self.steps += 1
         while not is_able:
@@ -172,7 +181,7 @@ class BinPacking3DEnv(gym.Env):
 
         return self.cur_observation(), reward, done, {}
 
-
     def render(self, mode='human'):
         # 可以实现必要的可视化功能
         pass
+

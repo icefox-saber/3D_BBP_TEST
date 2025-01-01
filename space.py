@@ -17,7 +17,7 @@ class Box(object):
 
 
 class Space(object):
-    def __init__(self, length=100, width=100, height=10):
+    def __init__(self, length=20, width=20, height=20):
         self.plain_size = np.array([length, width, height])
         self.plain = np.zeros(shape=(length, width), dtype=np.int32)
         self.boxes = []
@@ -111,7 +111,6 @@ class Space(object):
             return -1
         if lx < 0 or ly < 0:
             return -1
-
         rec = plain[lx:lx+x, ly:ly+y]
         r00 = rec[0,0]
         r10 = rec[x-1,0]
@@ -126,10 +125,9 @@ class Space(object):
         # check area and corner
         max_area = np.sum(rec==max_h)
         area = x * y
-
         # check boundary
         assert max_h >= 0
-        if max_h + z > self.height:
+        if max_h + z >= 10:
             return -1
 
         return 1
@@ -172,5 +170,3 @@ class Space(object):
             self.height = max(self.height, new_h + z)
             return True
         return False
-
-

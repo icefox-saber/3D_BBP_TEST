@@ -30,7 +30,7 @@ def moving_average(a, window_size):
     return np.concatenate((begin, middle, end))
 
 
-def train_on_policy_agent(env, agent, num_episodes, giveup_action):
+def train_on_policy_agent(env, agent, num_episodes, max_steps):
     return_list = []
     last_successful_agent = None
     for i in range(10):
@@ -40,6 +40,7 @@ def train_on_policy_agent(env, agent, num_episodes, giveup_action):
                 transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
                 state = env.reset()
                 done = False
+                steps = 0
                 while not done:
                         action = agent.take_action(state)
                         next_state, reward, done, _ = env.step(action)
@@ -50,6 +51,12 @@ def train_on_policy_agent(env, agent, num_episodes, giveup_action):
                         transition_dict['dones'].append(done)
                         state = next_state
                         episode_return += reward
+                        if reward > 0:
+                            steps = 0
+                        else:
+                            steps += 1
+                        if steps > max_steps:
+                            break
                 return_list.append(episode_return)
 
                 try:

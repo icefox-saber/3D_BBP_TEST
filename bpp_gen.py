@@ -28,6 +28,19 @@ def rand_reverse(item):
         return res
 
 def bpp_generator(sample_num, length, width, height):
+    max_length = length // 2
+    max_width = width // 2
+    max_height = height // 2
+    box_set = []
+
+    for i in range(sample_num+1):
+        random_length = random.randint(0, max_length)
+        random_width = random.randint(0, max_width)
+        random_height = random.randint(0, max_height)
+        box_set.append((2+random_length, 2+random_width, 2+random_height))
+
+    return  box_set
+"""
     heap_item = [(-1000000, (length, width, height))]
     while len(heap_item) < sample_num:
         largest_item = heapq.heappop(heap_item)[1]
@@ -61,7 +74,7 @@ def bpp_generator(sample_num, length, width, height):
         heapq.heappush(heap_item, item2)
     res_item = [item[1] for item in heap_item]
     return res_item
-
+"""
 """
 def main():
     list1 = bpp_generator(20, 100, 100, 150)
