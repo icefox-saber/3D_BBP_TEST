@@ -147,7 +147,6 @@ class BinPacking3DEnv(gym.Env):
                     'mask': np.ones(shape=self.act_len)}
             return self.cur_observation(), reward, done, {}
 
-        print(self.steps)
         box_ratio = self.get_box_ratio()
         plain = self.space.plain
         reward += box_ratio * 10
