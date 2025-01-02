@@ -41,16 +41,9 @@ class Space(object):
         up = box.ly
         do = box.ly + box.y
         max_h = np.max(plain[le:ri, up:do])
-        max_h = max(max_h, box.lz + box.z)
+        max_h = max_h+ box.z
         plain[le:ri, up:do] = max_h
         return plain
-
-    def get_box_list(self):
-        vec = list()
-        for box in self.boxes:
-            vec += box.standardize()
-        return vec
-
 
     def get_action_space(self):
         return self.plain_size[0] * self.plain_size[1]
@@ -127,7 +120,7 @@ class Space(object):
         area = x * y
         # check boundary
         assert max_h >= 0
-        if max_h + z >= 10:
+        if max_h + z > self.height:
             return -1
 
         return 1

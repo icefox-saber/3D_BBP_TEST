@@ -149,12 +149,15 @@ class BinPacking3DEnv(gym.Env):
 
         box_ratio = self.get_box_ratio()
         plain = self.space.plain
-        reward += box_ratio * 10
+        reward += box_ratio * 5
         done = False
         info = dict()
         info['counter'] = len(self.space.boxes)
+        ratio = self.space.get_ratio()
+        print(ratio)
         info['ratio'] = self.space.get_ratio()
         # info['mask'] = self.get_possible_position().reshape((-1,))
+        print(self.cur_box())
         self.steps += 1
         is_able = self.check_able()
         is_end = self.check_end()
