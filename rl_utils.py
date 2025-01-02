@@ -61,7 +61,6 @@ def train_on_policy_agent(env, agent, num_episodes, max_steps, fail, giveup):
 
                         else:
                             action = giveup
-                            print(action)
                             next_state, reward, done, _ = env.step(action)
                             transition_dict['states'].append(state)
                             transition_dict['actions'].append(action)
@@ -77,7 +76,6 @@ def train_on_policy_agent(env, agent, num_episodes, max_steps, fail, giveup):
                         break
 
                 if failed:
-                    print("failed")
                     if last_successful_agent is not None:
                         agent = deepcopy(last_successful_agent)
                         continue
@@ -91,6 +89,8 @@ def train_on_policy_agent(env, agent, num_episodes, max_steps, fail, giveup):
                     pbar.set_postfix({'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),
                                       'return': '%.3f' % np.mean(return_list[-10:])})
                 pbar.update(1)
+        torch.save(agent.actor.state_dict(), 'ppo_actor.pt')
+        torch.save(agent.critic.state_dict(), 'ppo_critic.pt')
     return return_list
 
 
