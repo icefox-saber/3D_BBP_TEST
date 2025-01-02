@@ -117,7 +117,7 @@ if __name__ == "__main__":
     lmbda = 0.95
     epochs = 10
     eps = 0.2
-    device = torch.device("cuda")
+    device = torch.device("cpu")
     bin_size = (20,20,20)
 
     registration_envs()
@@ -135,7 +135,7 @@ if __name__ == "__main__":
                 epochs, eps, gamma, device)
 
     # 开始训练
-    return_list = rl_utils.train_on_policy_agent(env, agent, num_episodes, max_steps, fail)
+    return_list = rl_utils.train_on_policy_agent(env, agent, num_episodes, max_steps, fail, giveup_action)
 
     # 保存模型
     torch.save(agent.actor.state_dict(), 'ppo_actor.pt')
