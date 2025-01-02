@@ -138,8 +138,8 @@ if __name__ == "__main__":
     return_list = rl_utils.train_on_policy_agent(env, agent, num_episodes, max_steps, fail)
 
     # 保存模型
-    torch.save(agent.actor.state_dict(), 'ppo_actor.pth')
-    torch.save(agent.critic.state_dict(), 'ppo_critic.pth')
+    torch.save(agent.actor.state_dict(), 'ppo_actor.pt')
+    torch.save(agent.critic.state_dict(), 'ppo_critic.pt')
 
     # 绘制训练结果
     episodes_list = list(range(len(return_list)))
