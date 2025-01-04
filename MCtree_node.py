@@ -125,20 +125,19 @@ class PutNode(Node):
         action_mask3 = sim_env.get_possible_position(rotated_box3)
         action_mask4 = sim_env.get_possible_position(rotated_box4)
         action_mask5 = sim_env.get_possible_position(rotated_box5)
-        combined_action_mask_2d = np.concatenate([
-            action_mask,
-            action_mask1,
-            action_mask2,
-            action_mask3,
-            action_mask4,
-            action_mask5
-        ], axis=0)
-        action_mask = combined_action_mask_2d.flatten()
-        action_mask = np.append(action_mask, 0)
+        action_masks = [action_mask, action_mask1, action_mask2, action_mask3, action_mask4, action_mask5]
+        num_rows = len(action_masks[0])
+        combined_action_mask = [0] * (num_rows * len(action_masks))
+
+        # 填充一维数组
+        for i, mask in enumerate(action_masks):
+            for j in range(len(mask)):  # 遍历每一行
+                combined_action_mask[6 * j + i] = mask[j]  # 根据规则填充
+        combined_action_mask = np.append(action_mask, 0)
 
         # get possibilities using neural network
-        value, pvec = nmodel.evaluate(observation, action_mask)
-        valid_action_num = np.sum(action_mask)
+        value, pvec = nmodel.evaluate(observation, combined_action_mask)
+        valid_action_num = np.sum(combined_action_mask)
 
         for i in range(len(action_mask)):
             action = i
