@@ -63,7 +63,7 @@ class MCTree(object):
             cur_action, next_node = cur_node.choose_best(self.c)
             # Simulate time: take the action
             action_idx = cur_action
-            obs, reward, done, _ = sim2_env.step([action_idx])
+            obs, reward, done, _ = sim2_env.step(action_idx)
             next_node.reward = reward
             if done:
                 self.subrt += 1

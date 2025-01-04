@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import collections
 import random
+import matplotlib.pyplot as plt
 from copy import deepcopy
 
 class ReplayBuffer:
@@ -89,6 +90,14 @@ def train_on_policy_agent(env, agent, num_episodes, max_steps, fail, giveup):
                     pbar.set_postfix({'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),
                                       'return': '%.3f' % np.mean(return_list[-10:])})
                 pbar.update(1)
+
+        episodes_list = list(range(len(return_list)))
+        plt.plot(episodes_list, return_list)
+        plt.xlabel('Episodes')
+        plt.ylabel('Returns')
+        plt.title('PPO on {bbp-v0}')
+        plt.show()
+
         torch.save(agent.actor.state_dict(), 'ppo_actor.pt')
         torch.save(agent.critic.state_dict(), 'ppo_critic.pt')
     return return_list

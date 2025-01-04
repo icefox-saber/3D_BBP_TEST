@@ -5,31 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import rl_utils
 from gym.envs.registration import register
-
-
-class PolicyNet(torch.nn.Module):
-    def __init__(self, state_dim, hidden_dim, action_dim):
-        super(PolicyNet, self).__init__()
-        self.fc1 = torch.nn.Linear(state_dim, hidden_dim)
-        self.fc2 = torch.nn.Linear(hidden_dim, action_dim)
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        probs = self.fc2(x)
-        log_probs = F.log_softmax(probs, dim=1)
-        probs = torch.exp(log_probs)
-        return probs
-
-
-class ValueNet(torch.nn.Module):
-    def __init__(self, state_dim, hidden_dim):
-        super(ValueNet, self).__init__()
-        self.fc1 = torch.nn.Linear(state_dim, hidden_dim)
-        self.fc2 = torch.nn.Linear(hidden_dim, 1)
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        return self.fc2(x)
+from models import PolicyNet
+from models import ValueNet
 
 
 class PPO:
@@ -109,9 +86,9 @@ def registration_envs():
 
 if __name__ == "__main__":
     # 初始化参数
-    actor_lr = 1e-3  # 学习率
+    actor_lr = 1e-4  # 学习率
     critic_lr = 0.01  # 学习率
-    num_episodes = 5000
+    num_episodes = 1000
     hidden_dim = 128
     gamma = 0.98
     lmbda = 0.95

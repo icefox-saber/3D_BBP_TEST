@@ -114,12 +114,30 @@ class PutNode(Node):
             rollout_length = 0
 
         # get valid position
-        action_mask = sim_env.get_possible_position()
-        action_mask = np.reshape(action_mask, newshape=(-1,))
+        rotated_box1 = sim_env.rotate_box(1)
+        rotated_box2 = sim_env.rotate_box(2)
+        rotated_box3 = sim_env.rotate_box(3)
+        rotated_box4 = sim_env.rotate_box(4)
+        rotated_box5 = sim_env.rotate_box(5)
+        action_mask = sim_env.get_possible_position(sim_env.cur_box())
+        action_mask1 = sim_env.get_possible_position(rotated_box1)
+        action_mask2 = sim_env.get_possible_position(rotated_box2)
+        action_mask3 = sim_env.get_possible_position(rotated_box3)
+        action_mask4 = sim_env.get_possible_position(rotated_box4)
+        action_mask5 = sim_env.get_possible_position(rotated_box5)
+        combined_action_mask_2d = np.concatenate([
+            action_mask,
+            action_mask1,
+            action_mask2,
+            action_mask3,
+            action_mask4,
+            action_mask5
+        ], axis=0)
+        action_mask = combined_action_mask_2d.flatten()
+        action_mask = np.append(action_mask, 0)
 
         # get possibilities using neural network
-        value, pvec = nmodel.evaluate(observation, False)
-
+        value, pvec = nmodel.evaluate(observation, action_mask)
         valid_action_num = np.sum(action_mask)
 
         for i in range(len(action_mask)):
@@ -130,13 +148,13 @@ class PutNode(Node):
 
         # no give-up action, default action is '0'
         if len(self.next_nodes) == 0:
-            self.next_nodes[0] = PutNode(self, 1)
+            self.next_nodes[0] = PutNode(self, 0)
 
         if rollout_length >= 1 and len(box_size_list) >= rollout_length + 1:
-            value = self.roll_out(box_size_list[:rollout_length + 1], copy.deepcopy(sim_env), observation, nmodel)
+            value = self.roll_out(box_size_list[:rollout_length + 1], copy.deepcopy(sim_env), observation, nmodel, action_mask)
         self.value = value
 
-    def roll_out(self, box_size_list, sim_env, observation, nmodel, gamma=1):
+    def roll_out(self, box_size_list, sim_env, observation, nmodel, action_mask, gamma=1):
         assert box_size_list is not None
         assert sim_env is not None
         assert observation is not None
@@ -150,14 +168,14 @@ class PutNode(Node):
         value = None
         for i in range(box_num):
             # box_size = box_size_list[i]
-            value, prev = nmodel.evaluate(obs, False)
+            value, prev = nmodel.evaluate(obs, action_mask)
 
             # action_pos = dict(zip(range(prev.shape[0]), prev))
             # action_max = max(action_pos, key=action_pos.get)
             # obs, reward, done, _ = sim3_env.step([action_max])
 
             action_sample = np.random.choice(prev.shape[0], p=prev)
-            obs, reward, done, _ = sim3_env.step([action_sample])
+            obs, reward, done, _ = sim3_env.step(action_sample)
 
             if not done and i + 1 < box_num:
                 reward_stack.append(reward)

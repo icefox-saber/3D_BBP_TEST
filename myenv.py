@@ -13,6 +13,7 @@ class BinPacking3DEnv(gym.Env):
     def __init__(self, bin_size=(20, 20, 20), max_items=60):
         super(BinPacking3DEnv, self).__init__()
 
+        self.bin = np.zeros((bin_size[0], bin_size[1], bin_size[2]))
         self.bin_size = np.array(bin_size)
         self.max_items = max_items
         self.space = Space(*self.bin_size)
@@ -51,9 +52,17 @@ class BinPacking3DEnv(gym.Env):
         size = self.get_box_plain()
         return np.reshape(np.stack((hmap,  *size)), newshape=(-1,))
 
-    def get_box_ratio(self):
+    def get_box_ratio(self, lx, ly):
         coming_box = self.cur_box()
-        return (coming_box[0] * coming_box[1] * coming_box[2]) / (self.space.plain_size[0] * self.space.plain_size[1] * self.space.plain_size[2])
+        container = []
+        rx = min(lx+coming_box[0]+1, self.bin_size[0]-1)
+        lx = max(0,lx - 1)
+        container.append(rx - lx)
+        uy = min(ly+coming_box[1]+1, self.bin_size[1]-1)
+        ly = max(0, ly - 1)
+        container.append(uy - ly)
+        container.append(self.cur_box()[2])
+        return (coming_box[0] * coming_box[1] * coming_box[2]) / (container[0] * container[1] * container[2])
 
     def get_possible_position(self, box, plain=None):
         x = box[0]
@@ -132,6 +141,7 @@ class BinPacking3DEnv(gym.Env):
         reward = 0
 
         if is_end:
+            print(self.space.get_ratio())
             done = True
             return self.cur_observation(), reward, done, {}
 
@@ -141,10 +151,12 @@ class BinPacking3DEnv(gym.Env):
             done = False
             info = {'counter': len(self.space.boxes), 'ratio': self.space.get_ratio(),
                     'mask': np.ones(shape=self.act_len)}
-            return self.cur_observation(), reward, done, {}
+            return self.cur_observation(), reward, done, info
 
         rotation = action % 6
         idx = action // 6
+        lx = idx % self.bin_size[0]
+        ly = idx // self.bin_size[0]
         self.rotated_box = self.rotate_box(rotation)
         succeeded = self.space.drop_box(self.rotated_box, idx, False)
 
@@ -153,36 +165,50 @@ class BinPacking3DEnv(gym.Env):
             done = False
             info = {'counter': len(self.space.boxes), 'ratio': self.space.get_ratio(),
                     'mask': np.ones(shape=self.act_len)}
-            return self.cur_observation(), reward, done, {}
+            return self.cur_observation(), reward, done, info
 
-        box_ratio = self.get_box_ratio()
         plain = self.space.plain
+        self.bin[lx:lx + self.cur_box()[0]+1, ly:ly + self.cur_box()[1]+1, plain[lx][ly]:plain[lx][ly] + self.cur_box()[2]+1] = 1
+        coming_box = self.cur_box()
+        container = []
+        rx = min(lx + coming_box[0] + 1, self.bin_size[0] - 1)
+        new_lx = max(0, lx - 1)
+        container.append(rx - lx)
+        uy = min(ly + coming_box[1] + 1, self.bin_size[1] - 1)
+        new_ly = max(0, ly - 1)
+        container_size = np.sum(self.bin[new_lx:rx+1, new_ly:new_ly + uy+1, 0:plain[lx][ly] + self.cur_box()[2]]+1)
+        box_ratio = coming_box[0]*coming_box[1]*coming_box[2]/container_size
         reward += box_ratio * 5
         done = False
         info = dict()
         info['counter'] = len(self.space.boxes)
         ratio = self.space.get_ratio()
-        print(ratio)
         info['ratio'] = self.space.get_ratio()
-        # info['mask'] = self.get_possible_position().reshape((-1,))
-        print(self.cur_box())
+        info['mask'] = self.get_possible_position(self.cur_box()).reshape((-1,))
         self.steps += 1
         is_able = self.check_able()
         is_end = self.check_end()
 
         if is_end:
+            print(self.space.get_ratio())
             done = True
-            return self.cur_observation(), reward, done, {}
+            return self.cur_observation(), reward, done, info
 
         while not is_able:
             self.steps += 1
             is_end = self.check_end()
             if is_end:
+                print(self.space.get_ratio())
                 done = True
-                return self.cur_observation(), reward, done, {}
+                info = dict()
+                info['counter'] = len(self.space.boxes)
+                ratio = self.space.get_ratio()
+                info['ratio'] = self.space.get_ratio()
+                info['mask'] = self.get_possible_position(self.cur_box()).reshape((-1,))
+                return self.cur_observation(), reward, done, info
             is_able = self.check_able()
 
-        return self.cur_observation(), reward, done, {}
+        return self.cur_observation(), reward, done, info
 
     def render(self, mode='human'):
         # 可以实现必要的可视化功能
