@@ -95,8 +95,8 @@ class nnModel(object):
         # 使用 ValueNet 估算状态价值
         value = self.value_net(x).item()
         # 使用 PolicyNet 预测动作概率分布
-        logits = self.policy_net(x).squeeze(0)  # 去掉批次维度
-        probs = torch.softmax(logits, dim=-1)  # 转化为概率分布
+        probs = self.policy_net(x).squeeze(0)  # 去掉批次维度
+        #probs = torch.softmax(logits, dim=-1)  # 转化为概率分布
         # 如果提供了动作掩码，调整动作概率分布
         if action_mask is not None:
             action_mask = torch.FloatTensor(action_mask).to(self.device)  # 转化为张量

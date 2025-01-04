@@ -20,6 +20,8 @@ def test(box_size_list, env, obser, simulation_times, search_depth, rollout_leng
     box_num = 0
     sum_reward = 0
     print("length: ", size_idx)
+    search_depth = 50
+    rollout_length = 10
 
     mctree = MCTree(sim_env, obser, box_size_list, nmodel=nmodel, search_depth=search_depth,
                     rollout_length=rollout_length)
@@ -33,6 +35,7 @@ def test(box_size_list, env, obser, simulation_times, search_depth, rollout_leng
 
         #assert sim_env.cur_box() == box_size_list[0]
         obser, r, done, dt = sim_env.step(action)
+        print(dt['ratio'])
         sum_reward += r
         if done:
             dt['reward'] = sum_reward
@@ -108,7 +111,7 @@ if __name__ == '__main__':
     args_list = list()
     args_list.append([100, None, -1])
     hidden_dim = 128
-    result = compare_test(env, args_list, 100, hidden_dim)
+    result = compare_test(env, args_list, 5, hidden_dim)
     for (key, value) in result.items():
         print(value[:, 0])
         print(value[:, 1])
