@@ -29,7 +29,6 @@ class BinPacking3DEnv(gym.Env):
         else:
             self.box_list = boxlist
         self.rotated_box = self.cur_box()
-        print(self.space.plain_size)
 
         # 初始化环境状态
         self.reset()

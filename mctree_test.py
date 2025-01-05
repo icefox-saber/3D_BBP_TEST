@@ -77,7 +77,6 @@ def compare_test(env, args_list, times=5, hidden_dim = 128):
     print("Case number: %d" % times)
     #nmodel = nnModel('../pretrained_models/default_cut_2.pt', args)
     box_list = env.box_list
-    print(box_list)
     container_size = env.bin_size
 
     nmodel = nnModel('ppo_actor.pt', 'ppo_critic.pt', container_size, hidden_dim)
@@ -118,12 +117,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some parameters.')
 
     # 添加参数
-    parser.add_argument('--container_size', type=parse_tuple, required=True,
-                        help='Container size as a tuple (x, y, z)')
-    parser.add_argument('--max_items', type=int, required=True,
-                        help='Maximum number of items')
-    parser.add_argument('--boxlist', type=parse_boxlist, required=True,
-                        help='List of boxes as a list of tuples [(x1, y1, z1), ...]')
+    parser.add_argument('--container_size', type=parse_tuple, default=(20, 20, 20),
+                        help='Container size as a tuple (x, y, z). Default is (20, 20, 20).')
+    parser.add_argument('--max_items', type=int, default=60,
+                        help='Maximum number of items. Default is 60.')
+    parser.add_argument('--boxlist', type=parse_boxlist, default=None,
+                        help='List of boxes as a list of tuples [(x1, y1, z1), ...]. Default is None.')
 
     # 解析参数
     args = parser.parse_args()
