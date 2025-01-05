@@ -137,7 +137,7 @@ class PutNode(Node):
                 for k in range(n):
                     result[6*(j*n + k) + i] = action_masks[i, j, k]
 
-                action_mask = np.append(result, 1)
+                action_mask = np.append(result, 0)
 
         # get possibilities using neural network
         value, pvec = nmodel.evaluate(observation, action_mask)

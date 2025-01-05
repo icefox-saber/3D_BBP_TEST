@@ -28,12 +28,12 @@ def test(box_size_list, env, obser, nmodel, box_mask):
     rollout_length = 10
     simulation_times = 100
     box_set = set()
-
-    mctree = MCTree(sim_env, obser, box_size_list.tolist(), nmodel=nmodel, search_depth=search_depth,
+    new_box_mask = box_mask
+    mctree = MCTree(sim_env, obser, box_size_list, nmodel=nmodel, search_depth=search_depth,
                     rollout_length=rollout_length)
     while True:
         # show some information
-        print(box_size_list[:10])
+        #print(box_size_list[:10])
         # print(sim_env.space.plain)
         # MCTS simulation
         pl = mctree.get_policy(simulation_times, zeta=1e-5)
@@ -42,14 +42,15 @@ def test(box_size_list, env, obser, nmodel, box_mask):
         #assert sim_env.cur_box() == box_size_list[0]
 
         obser, r, done, dt = sim_env.step(action)
-        print(dt['ratio'])
-        sum_reward += r
         if r > 0:
-            box_set.add(sim_env.steps)
-            print(sim_env.steps)
+            print(dt['counter'])
+            print(dt['ratio'])
+        sum_reward += r
 
         if done:
             dt['reward'] = sum_reward
+            index_array = np.array(list(sim_env.box_set))  # 将集合转换为 NumPy 数组
+            box_mask[index_array] = 0
             # print('---------------------')
             # print(dt)
             # print('---------------------')
@@ -61,7 +62,7 @@ def test(box_size_list, env, obser, nmodel, box_mask):
                 box_size_distribution[key] = value / box_num
             # print(box_size_distribution)
             # print('---------------------')
-            return [dt['ratio'], dt['counter'], dt['reward']]
+            return new_box_mask, dt['counter']
 
         # fetch new box
         assert size_idx <= len(env.box_list)
@@ -78,7 +79,6 @@ def test(box_size_list, env, obser, nmodel, box_mask):
         action_list.append(action)
         # to next node
         mctree.succeed(action, next_box, obser)
-    return box_mask
 
 
 
@@ -133,7 +133,7 @@ def read_csv(path):
             data_list.append(tmp)
     return data_list
 
-def deal_with_box(Bin, Boxes) :
+def deal_with_box(Bin, Boxes):
     new_boxes = []
     z1, z2, z3 = Bin[0] / 20, Bin[1] / 20, Bin[2] / 20
     for item in Boxes:
@@ -141,6 +141,8 @@ def deal_with_box(Bin, Boxes) :
         new_boxes.append(item_1)
     return np.array(new_boxes)
 
+def get_ratio(bin, box):
+    return box[0]*box[1]*box[2]/(bin[0]*bin[1]*bin[2])
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some parameters.')
 
@@ -168,15 +170,22 @@ if __name__ == '__main__':
     box_size_list = read_csv('task3.csv')
     hidden_dim = 128
     box_mask = np.ones(len(box_size_list),dtype=int)
-    it = 1
+    it = 0
     for bin in bins:
+        it += 1
+        print("container %d" % it)
         boxes = deal_with_box(bin,box_size_list)*box_mask[:, np.newaxis]
-        env = gym.make(env_name, bin_size=args.container_size, max_items=len(box_size_list), boxlist=boxes)
+        boxes_list = [tuple(item) for item in boxes]
+        env = gym.make(env_name, bin_size=args.container_size, max_items=len(box_size_list), boxlist=boxes_list)
         obser = env.reset()
         container_size = env.bin_size
         nmodel = nnModel('ppo_actor.pt', 'ppo_critic.pt', container_size, hidden_dim)
-        box_mask = test(boxes[:4], env, obser, nmodel, box_mask)
-        print("container %d ratio:" % it)
+        box_mask, box_set = test(env.box_list[:4], env, obser, nmodel, box_mask)
+        index_array = np.array(list(box_set))
+        ratio = 0
+        for i in index_array:
+            ratio += get_ratio(bin, box_size_list[i])
+        print("the ratio: %" % ratio)
 
     """
     args_list = list()
