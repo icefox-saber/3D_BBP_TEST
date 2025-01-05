@@ -10,7 +10,7 @@ from space import Space
 from bpp_gen import bpp_generator
 
 class BinPacking3DEnv(gym.Env):
-    def __init__(self, bin_size=(20, 20, 20), max_items=60):
+    def __init__(self, bin_size=(20, 20, 20), max_items=60, boxlist = None):
         super(BinPacking3DEnv, self).__init__()
 
         self.bin = np.zeros((bin_size[0], bin_size[1], bin_size[2]))
@@ -23,7 +23,11 @@ class BinPacking3DEnv(gym.Env):
         self.action_space = gym.spaces.Discrete(self.act_len)
         self.observation_space = gym.spaces.Box(low=0.0, high=self.space.height, shape=(self.obs_len,))
         self.steps = 0
-        self.box_list = bpp_generator(max_items, bin_size[0], bin_size[1], bin_size[2])
+        self.set_box_list = boxlist
+        if self.set_box_list is None:
+            self.box_list = bpp_generator(self.max_items, self.bin_size[0], self.bin_size[1], self.bin_size[2])
+        else:
+            self.box_list = boxlist
         self.rotated_box = self.cur_box()
         print(self.space.plain_size)
 
@@ -33,7 +37,10 @@ class BinPacking3DEnv(gym.Env):
     def reset(self):
         self.box_list.clear()
         self.space = Space(*self.bin_size)
-        self.box_list = bpp_generator(self.max_items, self.bin_size[0], self.bin_size[1], self.bin_size[2])
+        if self.set_box_list is None:
+            self.box_list = bpp_generator(self.max_items, self.bin_size[0], self.bin_size[1], self.bin_size[2])
+        else:
+            self.box_list = self.set_box_list
         self.steps = 0
         #self.cur_box = self.box_list[self.steps]
         return self.cur_observation()
@@ -198,7 +205,6 @@ class BinPacking3DEnv(gym.Env):
             self.steps += 1
             is_end = self.check_end()
             if is_end:
-                print(self.space.get_ratio())
                 done = True
                 info = dict()
                 info['counter'] = len(self.space.boxes)

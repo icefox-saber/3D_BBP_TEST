@@ -1,5 +1,7 @@
 import gym
 import copy
+import argparse
+import ast
 
 from gym import register
 
@@ -75,6 +77,7 @@ def compare_test(env, args_list, times=5, hidden_dim = 128):
     print("Case number: %d" % times)
     #nmodel = nnModel('../pretrained_models/default_cut_2.pt', args)
     box_list = env.box_list
+    print(box_list)
     container_size = env.bin_size
 
     nmodel = nnModel('ppo_actor.pt', 'ppo_critic.pt', container_size, hidden_dim)
@@ -103,10 +106,43 @@ def registration_envs():
         entry_point='myenv:BinPacking3DEnv',  # Expalined in envs/__init__.py
     )
 
+def parse_tuple(arg):
+    """将字符串解析为元组"""
+    return tuple(ast.literal_eval(arg))
+
+def parse_boxlist(item):
+    """将字符串解析为一个元组列表"""
+    return [tuple(ast.literal_eval(item))]
+
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Process some parameters.')
+
+    # 添加参数
+    parser.add_argument('--container_size', type=parse_tuple, required=True,
+                        help='Container size as a tuple (x, y, z)')
+    parser.add_argument('--max_items', type=int, required=True,
+                        help='Maximum number of items')
+    parser.add_argument('--boxlist', type=parse_boxlist, required=True,
+                        help='List of boxes as a list of tuples [(x1, y1, z1), ...]')
+
+    # 解析参数
+    args = parser.parse_args()
+
+    # 输出解析后的参数
+    """
+    print("Container Size:", args.container_size)
+    print("Max Items:", args.max_items)
+    print("Box List:", args.boxlist)
+    """
     registration_envs()
     env_name = "bbp-v0"
-    env = gym.make(env_name)
+    # 解析输入字符串为数组
+    gym_kwargs = {
+        'bin_size': args.container_size,
+        'max_items': args.max_items,
+        'boxlist': args.boxlist,
+    }
+    env = gym.make(env_name, bin_size=args.container_size, max_items=args.max_items, boxlist=args.boxlist)
 
     args_list = list()
     args_list.append([100, None, -1])
@@ -118,3 +154,4 @@ if __name__ == '__main__':
         meanv = value.mean(axis=-2)
         print(meanv)
         print("avg_time_per_item", meanv[-1] / meanv[1])
+#python mctree_test.py --container_size=(20,20,20) --max_items=100 --boxlist="[(15,15,15), (25,25,25)]"

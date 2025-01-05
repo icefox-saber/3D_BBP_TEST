@@ -104,7 +104,7 @@ class nnModel(object):
             adjusted_logits = torch.log(adjusted_probs + 1e-8)  # 转化回 logits
             adjusted_logits += action_mask * mask_weight  # 增强合法动作的概率
         else:
-            adjusted_logits = logits
+            adjusted_logits = probs
         # 使用调整后的 logits 创建动作分布
         action_dist = torch.distributions.Categorical(logits=adjusted_logits)
         # 从分布中采样动作
