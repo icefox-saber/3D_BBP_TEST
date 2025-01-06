@@ -205,9 +205,7 @@ class BinPacking3DEnv(gym.Env):
         info['ratio'] = ratio
         info['mask'] = self.get_possible_position(self.cur_box()).reshape((-1,))
         self.steps += 1
-        is_able = self.check_able()
         is_end = self.check_end()
-
 
         if is_end:
             done = True
@@ -218,7 +216,10 @@ class BinPacking3DEnv(gym.Env):
             info['mask'] = self.get_possible_position(self.cur_box()).reshape((-1,))
             return self.cur_observation(), reward, done, info
 
+        while np.sum(self.cur_box()) == 0:
+            self.steps += 1
 
+        is_able = self.check_able()
         while np.sum(self.cur_box()) == 0 or not is_able:
             self.steps += 1
             is_end = self.check_end()
