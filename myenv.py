@@ -10,7 +10,7 @@ from space import Space
 from bpp_gen import bpp_generator
 
 class BinPacking3DEnv(gym.Env):
-    def __init__(self, bin_size=(20, 20, 20), max_items=60):
+    def __init__(self, bin_size=(20, 20, 20), max_items=60, boxlist = None):
         super(BinPacking3DEnv, self).__init__()
 
         self.bin = np.zeros((bin_size[0], bin_size[1], bin_size[2]))
@@ -23,23 +23,39 @@ class BinPacking3DEnv(gym.Env):
         self.action_space = gym.spaces.Discrete(self.act_len)
         self.observation_space = gym.spaces.Box(low=0.0, high=self.space.height, shape=(self.obs_len,))
         self.steps = 0
-        self.box_list = bpp_generator(max_items, bin_size[0], bin_size[1], bin_size[2])
-        self.rotated_box = self.cur_box()
-        print(self.space.plain_size)
+        self.box_set = set()
 
+        if boxlist is None:
+            self.set = False
+        else:
+            self.set = True
+
+        if self.set:
+            self.box_list = boxlist
+        else:
+            self.box_list = bpp_generator(self.max_items, self.bin_size[0], self.bin_size[1], self.bin_size[2])
+        self.rotated_box = self.cur_box()
         # 初始化环境状态
         self.reset()
 
     def reset(self):
-        self.box_list.clear()
         self.space = Space(*self.bin_size)
-        self.box_list = bpp_generator(self.max_items, self.bin_size[0], self.bin_size[1], self.bin_size[2])
+        self.box_set = set()
         self.steps = 0
-        #self.cur_box = self.box_list[self.steps]
+
+        if self.set is False:
+            self.box_list.clear()
+            self.box_list = bpp_generator(self.max_items, self.bin_size[0], self.bin_size[1], self.bin_size[2])
+
+        while np.sum(self.cur_box()) == 0:
+            self.steps += 1
+
         return self.cur_observation()
 
     def cur_box(self):
-            return self.box_list[self.steps]
+        if self.check_end():
+            return (2,2,2)
+        return self.box_list[self.steps]
 
     def get_box_plain(self):
         x_plain = np.ones(self.space.plain_size[:2], dtype=np.int32) * self.cur_box()[0]
@@ -137,7 +153,6 @@ class BinPacking3DEnv(gym.Env):
 
     def step(self, action):
         is_end = self.check_end()
-        is_able = self.check_able()
         reward = 0
 
         if is_end:
@@ -145,11 +160,14 @@ class BinPacking3DEnv(gym.Env):
             done = True
             return self.cur_observation(), reward, done, {}
 
+        while np.sum(self.cur_box()) == 0:
+            self.steps += 1
+
         if action == self.area * 6:
             self.steps += 1
             reward = 0.00
             done = False
-            info = {'counter': len(self.space.boxes), 'ratio': self.space.get_ratio(),
+            info = {'counter': self.box_set, 'ratio': self.space.get_ratio(),
                     'mask': np.ones(shape=self.act_len)}
             return self.cur_observation(), reward, done, info
 
@@ -163,7 +181,7 @@ class BinPacking3DEnv(gym.Env):
         if not succeeded:
             reward = 0.00
             done = False
-            info = {'counter': len(self.space.boxes), 'ratio': self.space.get_ratio(),
+            info = {'counter': self.box_set, 'ratio': self.space.get_ratio(),
                     'mask': np.ones(shape=self.act_len)}
             return self.cur_observation(), reward, done, info
 
@@ -180,32 +198,41 @@ class BinPacking3DEnv(gym.Env):
         box_ratio = coming_box[0]*coming_box[1]*coming_box[2]/container_size
         reward += box_ratio * 5
         done = False
+        self.box_set.add(self.steps)
         info = dict()
-        info['counter'] = len(self.space.boxes)
+        info['counter'] = self.box_set
         ratio = self.space.get_ratio()
-        info['ratio'] = self.space.get_ratio()
+        info['ratio'] = ratio
         info['mask'] = self.get_possible_position(self.cur_box()).reshape((-1,))
         self.steps += 1
-        is_able = self.check_able()
         is_end = self.check_end()
 
         if is_end:
-            print(self.space.get_ratio())
             done = True
+            info = dict()
+            info['counter'] = self.box_set
+            ratio = self.space.get_ratio()
+            info['ratio'] = ratio
+            info['mask'] = self.get_possible_position(self.cur_box()).reshape((-1,))
             return self.cur_observation(), reward, done, info
 
-        while not is_able:
+        while np.sum(self.cur_box()) == 0:
+            self.steps += 1
+
+        is_able = self.check_able()
+        while np.sum(self.cur_box()) == 0 or not is_able:
             self.steps += 1
             is_end = self.check_end()
             if is_end:
-                print(self.space.get_ratio())
                 done = True
                 info = dict()
-                info['counter'] = len(self.space.boxes)
+                info['counter'] = self.box_set
                 ratio = self.space.get_ratio()
-                info['ratio'] = self.space.get_ratio()
+                info['ratio'] = ratio
                 info['mask'] = self.get_possible_position(self.cur_box()).reshape((-1,))
                 return self.cur_observation(), reward, done, info
+            while np.sum(self.cur_box()) == 0:
+                self.steps += 1
             is_able = self.check_able()
 
         return self.cur_observation(), reward, done, info

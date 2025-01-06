@@ -7,6 +7,9 @@ import rl_utils
 from gym.envs.registration import register
 from models import PolicyNet
 from models import ValueNet
+import argparse
+import ast
+
 
 
 class PPO:
@@ -83,6 +86,13 @@ def registration_envs():
         entry_point='myenv:BinPacking3DEnv',  # Expalined in envs/__init__.py
     )
 
+def parse_tuple(arg):
+    """将字符串解析为元组"""
+    return tuple(ast.literal_eval(arg))
+
+def parse_boxlist(item):
+    """将字符串解析为一个元组列表"""
+    return [tuple(ast.literal_eval(item))]
 
 if __name__ == "__main__":
     # 初始化参数
@@ -99,7 +109,21 @@ if __name__ == "__main__":
 
     registration_envs()
     env_name = "bbp-v0"
-    env = gym.make(env_name)
+
+    parser = argparse.ArgumentParser(description='Process some parameters.')
+
+    # 添加参数
+    parser.add_argument('--container_size', type=parse_tuple, default=(20, 20, 20),
+                        help='Container size as a tuple (x, y, z). Default is (20, 20, 20).')
+    parser.add_argument('--max_items', type=int, default=60,
+                        help='Maximum number of items. Default is 60.')
+    parser.add_argument('--boxlist', type=parse_boxlist, default=None,
+                        help='List of boxes as a list of tuples [(x1, y1, z1), ...]. Default is None.')
+
+    # 解析参数
+    args = parser.parse_args()
+
+    env = gym.make(env_name, bin_size=args.container_size, max_items=args.max_items, boxlist=args.boxlist)
 
     torch.manual_seed(0)
     state_dim = env.observation_space.shape[0]
