@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import collections
 import random
+import matplotlib.pyplot as plt
 from copy import deepcopy
 
 class ReplayBuffer:
@@ -30,7 +31,7 @@ def moving_average(a, window_size):
     return np.concatenate((begin, middle, end))
 
 
-def train_on_policy_agent(env, agent, num_episodes, max_steps):
+def train_on_policy_agent(env, agent, num_episodes, max_steps, fail, giveup):
     return_list = []
     last_successful_agent = None
     last_action = None
@@ -41,43 +42,58 @@ def train_on_policy_agent(env, agent, num_episodes, max_steps):
                 transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
                 state = env.reset()
                 done = False
+                failed = False
                 steps = 0
                 while not done:
-                        action = agent.take_action(state, last_action)
-                        if action is not None:
-                            last_action = action
-                        else:
-                            print("Action is None")
-                        next_state, reward, done, _ = env.step(action)
-                        transition_dict['states'].append(state)
-                        transition_dict['actions'].append(action)
-                        transition_dict['next_states'].append(next_state)
-                        transition_dict['rewards'].append(reward)
-                        transition_dict['dones'].append(done)
-                        state = next_state
-                        episode_return += reward
-                        if reward > 0:
-                            steps = 0
-                        else:
-                            steps += 1
-                        if steps > max_steps:
-                            break
-                return_list.append(episode_return)
+                    action = agent.take_action(state, fail)
+                    if action < fail:
+                        if steps < max_steps:
+                            next_state, reward, done, _ = env.step(action)
+                            transition_dict['states'].append(state)
+                            transition_dict['actions'].append(action)
+                            transition_dict['next_states'].append(next_state)
+                            transition_dict['rewards'].append(reward)
+                            transition_dict['dones'].append(done)
+                            state = next_state
+                            episode_return += reward
+                            if reward > 0 :
+                                steps = 0
+                            else:
+                                steps += 1
 
-                try:
-                    agent.update(transition_dict)  # 尝试更新智能体
-                    last_successful_agent = deepcopy(agent)  # 本轮训练成功，更新缓存的智能体
-                except ValueError as e:
-                    print(f"Warning: NaN detected in episode {i_episode}, reverting to last successful model.")
-                    # 恢复到上一轮成功的智能体
+                        else:
+                            action = giveup
+                            next_state, reward, done, _ = env.step(action)
+                            transition_dict['states'].append(state)
+                            transition_dict['actions'].append(action)
+                            transition_dict['next_states'].append(next_state)
+                            transition_dict['rewards'].append(reward)
+                            transition_dict['dones'].append(done)
+                            state = next_state
+                            episode_return += reward
+                            steps = 0
+
+                    else:
+                        failed = True
+                        break
+
+                if failed:
                     if last_successful_agent is not None:
                         agent = deepcopy(last_successful_agent)
-                    break  # 跳出本轮训练，进行下一轮
+                        continue
+
+                else:
+                    return_list.append(episode_return)
+                    agent.update(transition_dict)  # 尝试更新智能体
+                    last_successful_agent = deepcopy(agent)  # 本轮训练成功，更新缓存的智能体
 
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),
                                       'return': '%.3f' % np.mean(return_list[-10:])})
                 pbar.update(1)
+
+        torch.save(agent.actor.state_dict(), 'ppo_actor.pt')
+        torch.save(agent.critic.state_dict(), 'ppo_critic.pt')
     return return_list
 
 

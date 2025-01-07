@@ -5,44 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import rl_utils
 from gym.envs.registration import register
+from models import PolicyNet
+from models import ValueNet
+import argparse
+import ast
 
-
-class PolicyNet(torch.nn.Module):
-    def __init__(self, state_dim, hidden_dim, action_dim):
-        super(PolicyNet, self).__init__()
-        self.fc1 = torch.nn.Linear(state_dim, hidden_dim)
-        self.fc2 = torch.nn.Linear(hidden_dim, action_dim)
-
-    def forward(self, x):
-        try:
-            x = F.relu(self.fc1(x))
-            logits = self.fc2(x)  # 计算 logits
-            log_probs = F.log_softmax(logits, dim=1)  # 计算对数概率
-
-            # 如果需要计算概率
-            probs = torch.exp(log_probs)
-
-            # 检查是否出现 NaN 或 Inf
-            if torch.any(torch.isnan(probs)) or torch.any(torch.isinf(probs)):
-                raise ValueError("NaN or Inf detected in probs")
-
-            return probs
-
-        except ValueError as e:  # 捕获 ValueError 异常
-            print(f"Error during forward pass: {e}")
-            # 如果出现 NaN 或 Inf，重置 probs 为一个有效的默认值
-            return -1
-
-
-class ValueNet(torch.nn.Module):
-    def __init__(self, state_dim, hidden_dim):
-        super(ValueNet, self).__init__()
-        self.fc1 = torch.nn.Linear(state_dim, hidden_dim)
-        self.fc2 = torch.nn.Linear(hidden_dim, 1)
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        return self.fc2(x)
 
 
 class PPO:
@@ -61,18 +28,21 @@ class PPO:
         self.eps = eps  # PPO中截断范围的参数
         self.device = device
 
-    def take_action(self, state, last_action):
-        state = torch.tensor([state], dtype=torch.float).to(self.device)
-        probs = self.actor(state)
-        if probs == -1:
-            if last_action is not None:
-                return last_action
-            else:
-                return None
+    def take_action(self, state, fail):
 
-        action_dist = torch.distributions.Categorical(probs)
-        action = action_dist.sample()
-        return action.item()
+        state = torch.tensor([state], dtype=torch.float).to(self.device)
+        try:
+            probs = self.actor(state)
+            # 检查概率是否为nan
+            if torch.isnan(probs).any():
+                raise ValueError("Probabilities returned NaN")
+            action_dist = torch.distributions.Categorical(probs)
+            action = action_dist.sample()
+            return action.item()
+
+        except ValueError as e:
+            print(f"Error in computing action: {e}")
+            return fail
 
     def update(self, transition_dict):
         states = torch.tensor(transition_dict['states'],
@@ -116,23 +86,44 @@ def registration_envs():
         entry_point='myenv:BinPacking3DEnv',  # Expalined in envs/__init__.py
     )
 
+def parse_tuple(arg):
+    """将字符串解析为元组"""
+    return tuple(ast.literal_eval(arg))
+
+def parse_boxlist(item):
+    """将字符串解析为一个元组列表"""
+    return [tuple(ast.literal_eval(item))]
 
 if __name__ == "__main__":
     # 初始化参数
-    actor_lr = 1e-3  # 学习率
+    actor_lr = 1e-4  # 学习率
     critic_lr = 0.01  # 学习率
-    num_episodes = 5000
+    num_episodes = 1000
     hidden_dim = 128
     gamma = 0.98
     lmbda = 0.95
     epochs = 10
     eps = 0.2
-    device = torch.device("cuda")
+    device = torch.device("cpu")
     bin_size = (20,20,20)
 
     registration_envs()
     env_name = "bbp-v0"
-    env = gym.make(env_name)
+
+    parser = argparse.ArgumentParser(description='Process some parameters.')
+
+    # 添加参数
+    parser.add_argument('--container_size', type=parse_tuple, default=(20, 20, 20),
+                        help='Container size as a tuple (x, y, z). Default is (20, 20, 20).')
+    parser.add_argument('--max_items', type=int, default=60,
+                        help='Maximum number of items. Default is 60.')
+    parser.add_argument('--boxlist', type=parse_boxlist, default=None,
+                        help='List of boxes as a list of tuples [(x1, y1, z1), ...]. Default is None.')
+
+    # 解析参数
+    args = parser.parse_args()
+
+    env = gym.make(env_name, bin_size=args.container_size, max_items=args.max_items, boxlist=args.boxlist)
 
     torch.manual_seed(0)
     state_dim = env.observation_space.shape[0]
@@ -145,11 +136,11 @@ if __name__ == "__main__":
                 epochs, eps, gamma, device)
 
     # 开始训练
-    return_list = rl_utils.train_on_policy_agent(env, agent, num_episodes, max_steps)
+    return_list = rl_utils.train_on_policy_agent(env, agent, num_episodes, max_steps, fail, giveup_action)
 
     # 保存模型
-    torch.save(agent.actor.state_dict(), 'ppo_actor.pth')
-    torch.save(agent.critic.state_dict(), 'ppo_critic.pth')
+    torch.save(agent.actor.state_dict(), 'ppo_actor.pt')
+    torch.save(agent.critic.state_dict(), 'ppo_critic.pt')
 
     # 绘制训练结果
     episodes_list = list(range(len(return_list)))

@@ -39,22 +39,25 @@ def bpp_generator(sample_num, length, width, height):
         random_height = random.randint(0, max_height)
         box_set.append((2+random_length, 2+random_width, 2+random_height))
 
-    return  box_set
+    return box_set
+
+
+
 """
-    heap_item = [(-1000000, (length, width, height))]
+def bpp_generator(sample_num, length, width, height):
+    total_volume = -1* length * width * height;
+    heap_item = [(total_volume, (length, width, height))]
     while len(heap_item) < sample_num:
         largest_item = heapq.heappop(heap_item)[1]
         axis = -1
         high_1 = -1
-        cnt = 0
-        while high_1 <= 0.1:
-            axis = random.randint(0, 2)
-            high_1 = largest_item[axis]
-            cnt += 1
-            if cnt == 1000:
-                print("Generator Error.")
-                return heap_item
-        pos = random.randint(1, high_1-1)
+        axis = 0
+        for i11 in range(0,3):
+            if largest_item[i11]>largest_item[axis]:
+                axis = i11
+        high_1 = largest_item[axis]
+            
+        pos = random.randint(high_1//3, high_1*2//3)
         item1 = (-1, -1, -1)
         item2 = (-1, -1, -1)
         if axis == 0:
@@ -75,6 +78,10 @@ def bpp_generator(sample_num, length, width, height):
     res_item = [item[1] for item in heap_item]
     return res_item
 """
+
+
+
+
 """
 def main():
     list1 = bpp_generator(20, 100, 100, 150)
